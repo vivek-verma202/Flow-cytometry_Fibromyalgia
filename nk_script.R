@@ -1,8 +1,8 @@
 
 ## %######################################################%##
-#                                                          #
-####                        SETUP                       ####
-#                                                          #
+#                                                           #
+####                        SETUP                        ####
+#                                                           #
 ## %######################################################%##
 
 cd /project/6007297/vivek22/FM_flow_cytometry/NK
@@ -19,9 +19,9 @@ library("ggplot2")
 theme_set(theme_bw())
 
 ## %######################################################%##
-#                                                          #
-####                   01. flowClean                    ####
-#                                                          #
+#                                                           #
+####                   01. flowClean                     ####
+#                                                           #
 ## %######################################################%##
 
 # compensated in Flowjo
@@ -67,9 +67,9 @@ for (i in seq_along(1:length(f))) {
 ## metadata: ./data/swift_metadata.xlsx
 
 ## %######################################################%##
-#                                                          #
-####                  03. Input prep                    ####
-#                                                          #
+#                                                           #
+####                  03. Input prep                     ####
+#                                                           #
 ## %######################################################%##
 
 files <- list.files(
@@ -136,9 +136,9 @@ rm(list = (setdiff(ls(), "sce")))
 gc()
 
 ## %######################################################%##
-#                                                          #
-####                   04. Clustering                   ####
-#                                                          #
+#                                                           #
+####                   04. Clustering                    ####
+#                                                           #
 ## %######################################################%##
 
 sce <- cluster(sce,
@@ -148,7 +148,8 @@ sce <- cluster(sce,
 )
 gc()
 saveRDS(sce, "./data/nk_sce_clust_all.RDS")
-tiff("./plots/meta50_abun.tiff", units = "in", width = 8, height = 8, res = 300)
+tiff("./plots/meta50_abun.tiff", units = "in",
+     width = 8, height = 8, res = 300)
 plotAbundances(sce,
   k = "meta50", by = "cluster_id",
   group_by = "condition"
@@ -157,13 +158,15 @@ plotAbundances(sce,
   scale_fill_manual(values = c("#4BB269", "#BC3A3A"))
 dev.off()
 ## explore clusters
-tiff("./plots/meta50_hm_all.tiff", units = "in", width = 10, height = 20, res = 300)
+tiff("./plots/meta50_hm_all.tiff", units = "in",
+     width = 10, height = 20, res = 300)
 plotExprHeatmap(sce,
   by = "cluster_id", k = "meta50",
   scale = "first", col_clust = F, row_clust = F
 )
 dev.off()
-tiff("./plots/meta50_exp_norm.tiff", units = "in", width = 10, height = 20, res = 300)
+tiff("./plots/meta50_exp_norm.tiff", units = "in",
+     width = 10, height = 20, res = 300)
 plotClusterExprs(sce, k = "meta50", features = "type")
 dev.off()
 gc()
@@ -172,37 +175,43 @@ set.seed(1)
 sce <- runDR(sce, dr = "UMAP", cells = 1000, features = NULL);gc()
 sce <- runDR(sce, dr = "TSNE", cells = 1000, features = NULL);gc()
 saveRDS(sce, "./data/nk_sce_clust_all.RDS")
-tiff("./plots/meta50_dim_red.tiff", units = "in", width = 20, height = 10, res = 300)
+tiff("./plots/meta50_dim_red.tiff", units = "in",
+     width = 20, height = 10, res = 300)
 plot_grid(
   plotDR(sce, dr = "TSNE", color_by = "meta50"),
   plotDR(sce, dr = "UMAP", color_by = "meta50")
 )
 dev.off();gc()
-tiff("./plots/pbmds_both.tiff", units = "in", width = 15, height = 10, res = 300)
+tiff("./plots/pbmds_both.tiff", units = "in",
+     width = 15, height = 10, res = 300)
 pbMDS(sce,
   by = "both", k = "meta50",
   shape_by = "condition", size_by = F
 )
 dev.off();gc()
-tiff("./plots/pca_clrDR.tiff", units = "in", width = 15, height = 10, res = 300)
+tiff("./plots/pca_clrDR.tiff", units = "in",
+     width = 15, height = 10, res = 300)
 clrDR(sce,
   by = "cluster_id", dr = "PCA",
   k = "meta50", arrows = F, size_by = F
 )
 dev.off();gc()
-tiff("./plots/mds_clrDR.tiff", units = "in", width = 15, height = 10, res = 300)
+tiff("./plots/mds_clrDR.tiff", units = "in",
+     width = 15, height = 10, res = 300)
 clrDR(sce,
   by = "cluster_id", dr = "MDS",
   k = "meta50", arrows = F, size_by = F
 )
 dev.off();gc()
-tiff("./plots/umap_clrDR.tiff", units = "in", width = 15, height = 10, res = 300)
+tiff("./plots/umap_clrDR.tiff", units = "in",
+     width = 15, height = 10, res = 300)
 clrDR(sce,
   by = "cluster_id", dr = "UMAP",
   k = "meta50", arrows = F, size_by = F
 )
 dev.off();gc()
-tiff("./plots/tsne_clrDR.tiff", units = "in", width = 15, height = 10, res = 300)
+tiff("./plots/tsne_clrDR.tiff", units = "in",
+     width = 15, height = 10, res = 300)
 clrDR(sce,
   by = "cluster_id", dr = "TSNE",
   k = "meta50", arrows = F, size_by = F
@@ -210,9 +219,9 @@ clrDR(sce,
 dev.off();gc()
 
 ## %######################################################%##
-#                                                          #
-####                     05. Merger                     ####
-#                                                          #
+#                                                           #
+####                     05. Merger                      ####
+#                                                           #
 ## %######################################################%##
 
 ## merge details: ./data/merge.xlsx
@@ -249,7 +258,8 @@ sce <- mergeClusters(sce, k = "meta50", table = m1, id = "m1", overwrite = T)
 rm(list = (setdiff(ls(), "sce")));gc()
 
 ## explore merger:
-tiff("./plots/m1_dim_red.tiff", units = "in", width = 20, height = 10, res = 300)
+tiff("./plots/m1_dim_red.tiff", units = "in",
+     width = 20, height = 10, res = 300)
 plot_grid(
   plotDR(sce, dr = "TSNE", color_by = "meta50"),
   plotDR(sce, dr = "TSNE", color_by = "m1"),
@@ -257,7 +267,8 @@ plot_grid(
   plotDR(sce, dr = "UMAP", color_by = "m1")
 )
 dev.off();gc()
-tiff("./plots/m1_abun_all_samples.tiff", units = "in", width = 15, height = 8, res = 600)
+tiff("./plots/m1_abun_all_samples.tiff", units = "in",
+     width = 15, height = 8, res = 600)
 plotAbundances(sce, k = "m1", by = "sample_id", group_by = "condition")
 dev.off();gc()
 
@@ -271,9 +282,9 @@ dev.off();gc()
 saveRDS(sce, "./data/nk_sce_clust_all.RDS")
 
 ## %######################################################%##
-#                                                          #
-####                    06. Diffcyt                     ####
-#                                                          #
+#                                                           #
+####                    06. Diffcyt                      ####
+#                                                           #
 ## %######################################################%##
 
 design <- createDesignMatrix(ei(sce),
@@ -318,12 +329,179 @@ ds$fdr <- p.adjust(ds$p_val, method = "fdr")
 write.csv(da,"./data/da_res.csv",row.names = F)
 write.csv(ds,"./data/ds_res.csv",row.names = F)
 
+##%######################################################%##
+#                                                          #
+####                 07. NK activation                  ####
+#                                                          #
+##%######################################################%##
+
+# cytoqc to fix channels
+library(flowCore)
+library(flowWorkspace)
+library(cytoqc)
+files <- list.files(
+  path = "./NKA/data/fcs/01_compensated",
+  full.names = T
+)
+cqc_data <- cqc_load_fcs(files)
+res <- cqc_check(cqc_data, type = "channel")
+res
+table(res$channel,res$group_id)
+res1 <- cqc_match(res, ref = 1)
+res1 <- cqc_match_update(res1, map = c("FJComp-V500-A"="FJComp-BV510-A"),
+                         group_id = 2)
+res1 <- cqc_match_remove(res1,"FJComp-V500-A",group_id = 2)
+res1 <- cqc_match_update(res1, map = c("FJComp-Qdot 605-A"="FJComp-BV605-A"),
+                         group_id = 2)
+res1 <- cqc_match_remove(res1,"FJComp-Qdot 605-A",group_id = 2)
+res1 <- cqc_match_update(res1, map = c("FJComp-QDOT-705-A"="FJComp-BV711-A"),
+                         group_id = 2)
+res1 <- cqc_match_remove(res1,"FJComp-QDOT-705-A",group_id = 2)
+cqc_fix(res1)
+cqc_data <- cqc_get_data(res)
+cqc_data
+cqc_write_fcs(cqc_data,
+              "./NKA/data/fcs/01_cleaned")
+# fix markers:
+rm(list=ls());gc()
+files <- list.files(
+  path = "./NKA/data/fcs/01_cleaned",
+  full.names = T
+)
+cs <- load_cytoset_from_fcs(files)
+file_name <- as.character(pData(cs)$name)
+for (i in seq_along(1:length(file_name))) {
+  write.FCS(cs[[i]],paste0("./NKA/data/fcs/02_cleaned/",
+                           file_name[i]))
+}
+
 ## %######################################################%##
-#                                                          #
-####                   00.begin here                    ####
-#                                                          #
+#                                                           #
+####                   00.begin here                     ####
+#                                                           #
 ## %######################################################%##
 
+
+files <- list.files(
+  path = "./NKA/data/fcs/02_cleaned",
+  full.names = T
+)
+adnka <- files[grepl("./NKA/data/fcs/02_cleaned/ADNKA*",
+                     files)]
+nka   <- files[grepl("./NKA/data/fcs/02_cleaned/NKA*",
+                     files)]
+adnka_fs <- read.flowSet(adnka,
+                        transformation = F,
+                        truncate_max_range = F
+)
+adnka_file_name <- as.character(pData(adnka_fs)$name)
+nka_fs <- read.flowSet(nka,
+                         transformation = F,
+                         truncate_max_range = F
+)
+nka_file_name <- as.character(pData(nka_fs)$name)
+for (i in 1:length(adnka_file_name)) {
+  keyword(adnka_fs@frames[[adnka_file_name[i]]])[["$CYT"]] <- "FACS"
+}
+for (i in 1:length(nka_file_name)) {
+  keyword(nka_fs@frames[[nka_file_name[i]]])[["$CYT"]] <- "FACS"
+}
+adnka   <- read_excel("./NKA/data/meta.xlsx",sheet = "adnka")
+pheno <- read_excel("./data/FM_pheno.xlsx")
+PBMC_md <- merge(df1, pheno, by = "ID", all.x = T)
+PBMC_md <- PBMC_md[, c(1:4)]
+PBMC_md$date <- NULL
+for (i in 1:nrow(PBMC_md)) {
+  PBMC_md$date[i] <-
+    PBMC_fs@frames[[PBMC_md$file_name[i]]]@description[["$DATE"]]
+}
+names(PBMC_md) <- c("sample_id", "file_name", "condition", "age", "date")
+PBMC_md$condition <- factor(PBMC_md$condition,
+                            levels = c("Control", "Case")
+)
+PBMC_md$date <- factor(PBMC_md$date)
+PBMC_md <- PBMC_md[, c(2, 1, 3:5)]
+PBMC_md$patient_id <- PBMC_md$sample_id
+colnames(PBMC_fs) <- gsub("FJComp-", "", gsub("-A$", "", colnames(PBMC_fs)))
+fcs_colname <- colnames(PBMC_fs)
+antigen <- c(
+  "TIGIT", "CD16", "CD57", "CD226", "CD3", "CD56", "CD107a",
+  "CD335", "CD159c", "CD158e", "CD314", "CD96", "CD8a", "CD159a"
+)
+marker_class <- c(
+  "state", "type", "type", "state", "type", "type", "state",
+  "state", "state", "state", "state", "state", "type", "state"
+)
+PBMC_panel <- data.frame(fcs_colname, antigen, marker_class,
+                         stringsAsFactors = F
+)
+PBMC_panel <- PBMC_panel[c(5, 13, 6, 2, 3, 8, 14, 9, 11, 10, 7, 1, 12, 4), ]
+row.names(PBMC_panel) <- NULL
+PBMC_panel
+PBMC_md
+PBMC_fs
+sce <- prepData(PBMC_fs, PBMC_panel, PBMC_md,
+                md_cols = list(
+                  file = "file_name", id = "sample_id",
+                  factors = c("condition", "age", "date")
+                ),
+                transform = T, cofactor = 150
+)
+sce@metadata[["experiment_info"]][["age"]] <- as.numeric(as.character(sce@metadata[["experiment_info"]][["age"]]))
+## QC
+sce # 57576092 cells
+summary(sce@metadata[["experiment_info"]][["age"]]) # median = 56
+summary(sce@metadata[["experiment_info"]][["condition"]]) # 45 cntrl, 42 FM
+summary(sce@metadata[["experiment_info"]][["date"]]) # 13 | 18 | 15 | 41
+rm(list = (setdiff(ls(), "sce")))
+gc()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## %######################################################%##
+#                                                           #
+####                   00.begin here                     ####
+#                                                           #
+## %######################################################%##
+cd /project/6007297/vivek22/FM_flow_cytometry/NK
+salloc --time=2:59:0 --mem=150G --account=def-ldiatc
+module load gcc/8.3.0 r/4.0.0
+R - -no - save
+library("flowClean")
+library("readxl")
+library("flowCore")
+library("CATALYST")
+library("diffcyt")
+library("cowplot")
+library("ggplot2")
+theme_set(theme_bw())
 
 
 
