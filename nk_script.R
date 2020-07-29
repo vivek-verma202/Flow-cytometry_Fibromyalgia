@@ -5,7 +5,7 @@
 #                                                          #
 ## %######################################################%##
 
-cd / project / 6007297 / vivek22 / FM_flow_cytometry / NK
+cd /project/6007297/vivek22/FM_flow_cytometry/NK
 # salloc --time=2:59:0 --mem=150G --account=def-ldiatc
 # module load gcc/8.3.0 r/4.0.0
 R - -no - save
@@ -53,13 +53,22 @@ for (i in seq_along(1:length(f))) {
 }
 ## good, alive, dump-ve singlets: "./data/fcs/02_cleaned"
 ## wsp: S:\FM_FLOW_CYTOMETRY\clean_fcs\2_NK_gating.wsp
-#  Normalized using swiftReg (individual, NDCR only)
+
+##%######################################################%##
+#                                                          #
+####                 02. Normalization                  ####
+#                                                          #
+##%######################################################%##
+
+##  Normalized using swiftReg (individual, NDCR only)
 ## 80000000 cells (concat) used for reference
 ## normalized fcs: "./NK/data/fcs/03_normalized"
+## configuration details: nk_swift.config
+## metadata: ./data/swift_metadata.xlsx
 
 ## %######################################################%##
 #                                                          #
-####               02 Prepare datasets                  ####
+####                  03. Input prep                    ####
 #                                                          #
 ## %######################################################%##
 
@@ -128,7 +137,7 @@ gc()
 
 ## %######################################################%##
 #                                                          #
-####                   03. Clustering                   ####
+####                   04. Clustering                   ####
 #                                                          #
 ## %######################################################%##
 
@@ -202,37 +211,38 @@ dev.off();gc()
 
 ## %######################################################%##
 #                                                          #
-####                 04. Merge clusters                 ####
+####                     05. Merger                     ####
 #                                                          #
 ## %######################################################%##
 
+## merge details: ./data/merge.xlsx
 old_cluster <- c(1:50)
 new_cluster <- c(
-  "undefined", "CD57+CD16+NK",
-  "CD8+CD56-CD57-T", "CD8+CD56-CD57-T",
-  "CD8+CD56-CD57-T", "CD8-CD56-CD57-T",
-  "CD8-CD56-CD57-T", "CD8-CD56-CD57+T",
-  "undefined", "CD8+CD56-CD57+T",
-  "CD8+CD56-CD57-T", "CD8-CD56-CD57-T",
-  "CD8+CD56-CD57-T", "undefined",
-  "CD8+CD56-CD57+T", "CD8+CD56-CD57-T",
-  "CD8+CD56-CD57-T", "CD8-CD56-CD57-T",
-  "CD8+CD56-CD57-T", "CD8+CD56-CD57+T",
-  "CD8+CD56-CD57-T", "CD8+CD56-CD57-T",
-  "CD8+CD56-CD57-T", "CD8+CD56-CD57-T",
-  "CD8+CD56-CD57+T", "CD8+CD56-CD57+T",
-  "CD8+CD56-CD57+T", "CD8+CD56-CD57+T",
-  "CD8+CD56-CD57+T", "CD8+CD56-CD57+T",
-  "CD8-CD56-CD57+T", "CD8+CD56+CD57+T",
-  "undefined", "CD8+CD56+CD57+T",
-  "CD8-CD56+CD57+T", "CD8-CD56+CD57+T",
-  "CD57+CD16+NK", "CD57+CD16+NK",
-  "CD8+CD56+CD57+T", "CD57+CD16+NK",
-  "CD57-CD16+NK", "CD57+CD16+NK",
-  "CD57-CD16+NK", "CD56_bri_NK",
-  "undefined", "undefined",
-  "CD56_bri_NK", "CD56_bri_NK",
-  "CD56-CD16+NK", "undefined"
+  "CD8+CD56+T"  ,  "CD57+NK",
+  "CD8+CD56-T"  ,  "CD8+CD56-T",
+  "CD8+CD56-T"  ,  "CD8-CD56-T",
+  "CD8-CD56-T"  ,  "CD8-CD56+T",
+  "undefined"   ,  "CD8+CD56+T",
+  "CD8+CD56-T"  ,  "CD8-CD56-T",
+  "CD8+CD56-T"  ,  "CD8-CD56+T",
+  "CD8+CD56+T"  ,  "CD8+CD56-T",
+  "CD8+CD56-T"  ,  "CD8-CD56-T",
+  "CD8+CD56-T"  ,  "CD8+CD56+T",
+  "CD8+CD56-T"  ,  "CD8+CD56-T",
+  "CD8+CD56-T"  ,  "CD8+CD56-T",
+  "CD8+CD56+T"  ,  "CD8+CD56+T",
+  "CD8+CD56+T"  ,  "CD8+CD56+T",
+  "CD8+CD56+T"  ,  "CD8+CD56+T",
+  "CD8-CD56+T"  ,  "CD8+CD56+T",
+  "CD8-CD56-T"  ,  "CD8+CD56+T",
+  "CD8-CD56+T"  ,  "CD8-CD56+T",
+  "CD57+NK"     ,  "CD57+NK",
+  "CD8+CD56+T"  ,  "CD57+NK",
+  "CD57-NK"     ,  "CD57+NK",
+  "CD57-NK"     ,  "CD57-NK",
+  "undefined"   ,  "undefined",
+  "CD56_bri_NK" ,  "CD57-NK",
+  "CD56-CD16+NK",  "undefined"
 )
 m1  <- data.frame(old_cluster, new_cluster)
 sce <- mergeClusters(sce, k = "meta50", table = m1, id = "m1", overwrite = T)
@@ -247,7 +257,10 @@ plot_grid(
   plotDR(sce, dr = "UMAP", color_by = "m1")
 )
 dev.off();gc()
-tiff("./plots/m1_abun.tiff", units = "in", width = 5, height = 10, res = 600)
+tiff("./plots/m1_abun_all_samples.tiff", units = "in", width = 15, height = 8, res = 600)
+plotAbundances(sce, k = "m1", by = "sample_id", group_by = "condition")
+dev.off();gc()
+
 p <- plotAbundances(sce,
   k = "m1", by = "cluster_id",
   group_by = "condition"
@@ -255,16 +268,11 @@ p <- plotAbundances(sce,
 p + scale_colour_manual(values = c("#5FB84F", "#8A0200")) +
   scale_fill_manual(values = c("#5FB84F", "#8A0200"))
 dev.off();gc()
-tiff("./plots/m1_counts.tiff", units = "in", width = 5, height = 5, res = 300)
-plotCounts(sce,
-  group_by = "condition"
-)
-dev.off();gc()
 saveRDS(sce, "./data/nk_sce_clust_all.RDS")
 
 ## %######################################################%##
 #                                                          #
-####                    05. Diffcyt                     ####
+####                    06. Diffcyt                     ####
 #                                                          #
 ## %######################################################%##
 
@@ -283,7 +291,7 @@ res_DA <- diffcyt(sce,
   clustering_to_use = "m1",
   verbose           = T
 )
-saveRDS(res_DA, "./data/res_DA_m1.RDS")
+saveRDS(res_DA, "./data/clean_res_DA_m1.RDS");gc()
 res_DS <- diffcyt(sce,
   design            = design,
   contrast          = contrast,
@@ -291,15 +299,24 @@ res_DS <- diffcyt(sce,
   clustering_to_use = "m1",
   verbose           = T
 )
-saveRDS(res_DS, "./data/res_DS_m1.RDS")
-as.data.frame(topTable(res_DA,
+saveRDS(res_DS, "./data/clean_res_DS_m1.RDS");gc()
+da <- as.data.frame(topTable(res_DA,
   order = T, all = T,
   order_by = "p_val", show_all_cols = T
 ))
-as.data.frame(topTable(res_DS,
+ds <- as.data.frame(topTable(res_DS,
   order = T, all = T,
   order_by = "p_val", show_all_cols = T
 ))
+da <- da[da$cluster_id != "undefined",-6]
+ds <- ds[ds$cluster_id != "undefined",-8]
+da <- da[order(da$p_val),]
+ds <- ds[order(ds$p_val),]
+
+da$fdr <- p.adjust(da$p_val, method = "fdr")
+ds$fdr <- p.adjust(ds$p_val, method = "fdr")
+write.csv(da,"./data/da_res.csv",row.names = F)
+write.csv(ds,"./data/ds_res.csv",row.names = F)
 
 ## %######################################################%##
 #                                                          #
@@ -307,19 +324,6 @@ as.data.frame(topTable(res_DS,
 #                                                          #
 ## %######################################################%##
 
-cd / project / 6007297 / vivek22 / FM_flow_cytometry / NK
-# salloc --time=2:59:0 --mem=150G --account=def-ldiatc
-# module load gcc/8.3.0 r/4.0.0
-R - -no - save
-library("flowClean")
-library("readxl")
-library("flowCore")
-library("CATALYST")
-library("diffcyt")
-library("cowplot")
-library("ggplot2")
-theme_set(theme_bw())
-sce <- readRDS("./data/nk_sce_clust_all.RDS")
 
 
 
