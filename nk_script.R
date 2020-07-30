@@ -159,10 +159,11 @@ dev.off()
 ## explore clusters
 tiff("./plots/meta50_hm_all.tiff", units = "in",
      width = 10, height = 20, res = 300)
-plotExprHeatmap(sce,
-  by = "cluster_id", k = "meta50",
-  scale = "first", col_clust = F, row_clust = F
-)
+plotExprHeatmap(sce,features = NULL,by = "cluster_id",k = "meta20",
+                row_anno = F,row_clust = T, col_clust = F,
+                row_dend = T, col_dend = F,bin_anno = T,
+                bars = T, perc = T,
+                hm_pal = c("grey60","white", "orange"))
 dev.off()
 tiff("./plots/meta50_exp_norm.tiff", units = "in",
      width = 10, height = 20, res = 300)
@@ -371,13 +372,6 @@ for (i in seq_along(1:length(file_name))) {
   write.FCS(cs[[i]],paste0("./NKA/data/fcs/02_cleaned/",
                            file_name[i]))
 }
-
-## %######################################################%##
-#                                                           #
-####                   00.begin here                     ####
-#                                                           #
-## %######################################################%##
-
 files <- list.files(
   path       = "./NKA/data/fcs/02_cleaned",
   full.names = T
@@ -393,6 +387,60 @@ adnka_fn <- as.character(pData(adnka_fs)$name)
 for (i in seq_along(1:length(adnka_fn))) {
   keyword(adnka_fs@frames[[adnka_fn[i]]])[["$CYT"]] <- "FACS"
 }
+# prepare adnka_md
+ID            <- gsub("_.*","",gsub("^ADNKA_._", "",adnka_fn));ID
+state         <- gsub(".*[_]([^.]+)[.].*", "\\1",
+                      gsub("^ADNKA_._", "",adnka_fn));state
+df1           <- data.frame(adnka_fn, ID, state)
+pheno         <- read_excel("./data/FM_pheno.xlsx")
+adnka_md      <- merge(df1, pheno, by = "ID", all.x = T)
+adnka_md      <- adnka_md[, c(1:5)]
+adnka_md$date <- NULL
+for (i in 1:nrow(adnka_md)) {
+  adnka_md$date[i] <-
+    adnka_fs@frames[[adnka_md$adnka_fn[i]]]@description[["$DATE"]]
+}
+names(adnka_md) <- c("sample_id", "file_name","state",
+                     "condition", "age", "date")
+adnka_md$condition <- factor(adnka_md$condition,
+                             levels = c("Control", "Case")
+)
+adnka_md$date <- factor(adnka_md$date)
+adnka_md <- adnka_md[, c(2, 1, 3:6)]
+adnka_md$patient_id <- adnka_md$sample_id
+# prepare adnka_panel
+colnames(adnka_fs) <- gsub("FJComp-", "", gsub("-A$", "", colnames(adnka_fs)))
+fcs_colname <- colnames(adnka_fs)
+antigen <- c(
+  "CD159a", "CD16", "CCL4", "CD57",
+  "CD159c", "CD107a", "CD56", "IFNg"
+)
+marker_class <- c(
+  "state", "type", "state", "type",
+  "state", "state", "type", "state"
+)
+adnka_panel <- data.frame(fcs_colname, antigen, marker_class,
+                          stringsAsFactors = F
+)
+adnka_panel <- adnka_panel[c(7,2,4,1,5,3,6,8), ]
+row.names(adnka_panel) <- NULL
+# prepare adnka_sce
+adnka_sce <- prepData(adnka_fs, adnka_panel, adnka_md,
+                      md_cols = list(
+                        file = "file_name", id = "sample_id",
+                        factors = c("state","condition", "age", "date")
+                      ),
+                      transform = T, cofactor = 150
+)
+adnka_sce@metadata[["experiment_info"]][["age"]] <- as.numeric(as.character(adnka_sce@metadata[["experiment_info"]][["age"]]))
+## QC
+adnka_sce # 2983444 cells
+summary(adnka_sce@metadata[["experiment_info"]][["age"]]) # median = 56
+summary(adnka_sce@metadata[["experiment_info"]][["condition"]])
+# 28 cntrl, 28 FM
+summary(adnka_sce@metadata[["experiment_info"]][["date"]])
+# 08 | 06 | 16 | 10 | 16
+# prepare nka_fs
 nka      <- files[grepl("./NKA/data/fcs/02_cleaned/NKA*",
                         files)]
 nka_fs   <- read.flowSet(nka,
@@ -403,188 +451,110 @@ nka_fn <- as.character(pData(nka_fs)$name)
 for (i in seq_along(1:length(nka_fn))) {
   keyword(nka_fs@frames[[nka_fn[i]]])[["$CYT"]] <- "FACS"
 }
-# adnka_fn      <- c("ADNKA_A_E40_STIM.fcs","ADNKA_B_F9_UNSTIM.fcs")
-ID            <- gsub("_.*","",gsub("^ADNKA_._", "",adnka_fn));ID
-state         <- gsub(".*[_]([^.]+)[.].*", "\\1",
-                 gsub("^ADNKA_._", "",adnka_fn));state
-df1           <- data.frame(file_name, ID, state)
-pheno         <- read_excel("./data/FM_pheno.xlsx")
-pheno         <- read_excel("./data/FM_pheno.xlsx")
-adnka_md      <- merge(df1, pheno, by = "ID", all.x = T)
-adnka_md      <- adnka_md[, c(1:5)]
-adnka_md$date <- NULL
-for (i in 1:nrow(adnka_md)) {
-  adnka_md$date[i] <-
-    adnka_fs@frames[[adnka_md$file_name[i]]]@description[["$DATE"]]
+# prepare nka_md
+ID          <- gsub("_.*","",gsub("^NKA_._", "",nka_fn));ID
+state       <- gsub(".*[_]([^.]+)[.].*", "\\1",
+                    gsub("^NKA_._", "",nka_fn));state
+df1         <- data.frame(nka_fn, ID, state)
+pheno       <- read_excel("./data/FM_pheno.xlsx")
+nka_md      <- merge(df1, pheno, by = "ID", all.x = T)
+nka_md      <- nka_md[, c(1:5)]
+nka_md$date <- NULL
+for (i in 1:nrow(nka_md)) {
+  nka_md$date[i] <-
+    nka_fs@frames[[nka_md$nka_fn[i]]]@description[["$DATE"]]
 }
-names(adnka_md) <- c("sample_id", "file_name", "condition", "age", "date")
-adnka_md$condition <- factor(adnka_md$condition,
-                            levels = c("Control", "Case")
+names(nka_md) <- c("sample_id", "file_name","state",
+                     "condition", "age", "date")
+nka_md$condition <- factor(nka_md$condition,
+                             levels = c("Control", "Case")
 )
-adnka_md$date <- factor(adnka_md$date)
-adnka_md <- adnka_md[, c(2, 1, 3:5)]
-adnka_md$patient_id <- adnka_md$sample_id
-colnames(adnka_fs) <- gsub("FJComp-", "", gsub("-A$", "", colnames(adnka_fs)))
-fcs_colname <- colnames(adnka_fs)
-# <<---------------------- code set till this point
+nka_md$date <- factor(nka_md$date)
+nka_md <- nka_md[, c(2, 1, 3:6)]
+nka_md$patient_id <- nka_md$sample_id
+# prepare nka_panel
+colnames(nka_fs) <- gsub("FJComp-", "", gsub("-A$", "", colnames(nka_fs)))
+fcs_colname <- colnames(nka_fs)
 antigen <- c(
-  "TIGIT", "CD16", "CD57", "CD226", "CD3", "CD56", "CD107a",
-  "CD335", "CD159c", "CD158e", "CD314", "CD96", "CD8a", "CD159a"
+  "CD159a", "CD16", "CCL4", "CD57",
+  "CD159c", "CD107a", "CD56", "IFNg"
 )
 marker_class <- c(
-  "state", "type", "type", "state", "type", "type", "state",
-  "state", "state", "state", "state", "state", "type", "state"
+  "state", "type", "state", "type",
+  "state", "state", "type", "state"
 )
-PBMC_panel <- data.frame(fcs_colname, antigen, marker_class,
-                         stringsAsFactors = F
+nka_panel <- data.frame(fcs_colname, antigen, marker_class,
+                          stringsAsFactors = F
 )
-PBMC_panel <- PBMC_panel[c(5, 13, 6, 2, 3, 8, 14, 9, 11, 10, 7, 1, 12, 4), ]
-row.names(PBMC_panel) <- NULL
-PBMC_panel
-PBMC_md
-PBMC_fs
-sce <- prepData(PBMC_fs, PBMC_panel, PBMC_md,
-                md_cols = list(
-                  file = "file_name", id = "sample_id",
-                  factors = c("condition", "age", "date")
-                ),
-                transform = T, cofactor = 150
+nka_panel <- nka_panel[c(7,2,4,1,5,3,6,8), ]
+row.names(nka_panel) <- NULL
+# prepare nka_sce
+nka_sce <- prepData(nka_fs, nka_panel, nka_md,
+                      md_cols = list(
+                        file = "file_name", id = "sample_id",
+                        factors = c("state","condition", "age", "date")
+                      ),
+                      transform = T, cofactor = 150
 )
-sce@metadata[["experiment_info"]][["age"]] <- as.numeric(as.character(sce@metadata[["experiment_info"]][["age"]]))
+nka_sce@metadata[["experiment_info"]][["age"]] <- as.numeric(as.character(nka_sce@metadata[["experiment_info"]][["age"]]))
 ## QC
-sce # 57576092 cells
-summary(sce@metadata[["experiment_info"]][["age"]]) # median = 56
-summary(sce@metadata[["experiment_info"]][["condition"]]) # 45 cntrl, 42 FM
-summary(sce@metadata[["experiment_info"]][["date"]]) # 13 | 18 | 15 | 41
-rm(list = (setdiff(ls(), "sce")))
+nka_sce # 512712 cells
+summary(nka_sce@metadata[["experiment_info"]][["age"]]) # median = 56
+summary(nka_sce@metadata[["experiment_info"]][["condition"]])
+# 28 cntrl, 28 FM
+summary(nka_sce@metadata[["experiment_info"]][["date"]])
+# 08 | 06 | 16 | 10 | 16
+rm(list = (setdiff(ls(), c("adnka_sce","nka_sce"))));gc()
+# clustering
+adnka_sce <- cluster(adnka_sce,
+               features = NULL, xdim = 10,
+               ydim     = 10, maxK = 20,
+               verbose  = T, seed = 1
+)
 gc()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+saveRDS(adnka_sce, "./NKA/data/adnka_sce.RDS")
+nka_sce <- cluster(nka_sce,
+              features = NULL, xdim = 10,
+              ydim     = 10, maxK = 20,
+              verbose  = T, seed = 1
+)
+gc()
+saveRDS(nka_sce, "./NKA/data/nka_sce.RDS")
 
 
 ## %######################################################%##
 #                                                           #
-####                            EXTRA                    ####
+####                   00.begin here                     ####
 #                                                           #
 ## %######################################################%##
-cd /project/6007297/vivek22/FM_flow_cytometry/NK
-salloc --time=2:59:0 --mem=150G --account=def-ldiatc
-module load gcc/8.3.0 r/4.0.0
-R - -no - save
-library("flowClean")
-library("readxl")
-library("flowCore")
-library("CATALYST")
-library("diffcyt")
-library("cowplot")
-library("ggplot2")
-theme_set(theme_bw())
 
+# diffcyt
+plotExprHeatmap(nka_sce,features = NULL,by = "cluster_id",k = "meta3",
+                row_anno = F,row_clust = T, col_clust = F,
+                row_dend = T, col_dend = F,bin_anno = T,
+                bars = T, perc = T,
+                hm_pal = c("grey60","white", "orange"))
 
+ei <- metadata(nka_sce)$experiment_info 
+(da_formula1 <- createFormula(ei,                     
+                              cols_fixed = c("condition","age"),      
+                              cols_random = "sample_id"))
 
+contrast <- createContrast(c(0, 1, 0))
+res <- diffcyt(nka_sce,                                            
+               formula = da_formula1, contrast = contrast,
+               analysis_type = "DS", method_DS = "diffcyt-DS-LMM",
+               clustering_to_use = "meta3", verbose = T)
 
-
-
-
-
-
-
-
-
-
-
-p <- ggplot(mpg, aes(class, hwy))
-p + geom_boxplot(fill = c(
-  "#8DE887", "#8A0200",
-  "#8DE887", "#8A0200",
-  "#8DE887", "#8A0200",
-  "#8DE887"
+ds <- as.data.frame(topTable(res,
+                             order    = T, all = T,
+                             show_meds = F,
+                             order_by = "p_val", show_all_cols = T
 ))
 
-tiff("./plots/m2_counts.tiff", units = "in", width = 5, height = 5, res = 300)
-plotCounts(sce,
-  group_by = "condition",
-  color_by = "m2"
-)
-dev.off()
-
-## DS
-res_DS <- diffcyt(sce,
-  design = design,
-  contrast = contrast,
-  analysis_type = "DS",
-  clustering_to_use = "m3",
-  plot = T,
-  verbose = T
-)
-as.data.frame(topTable(res_DS,
-  order = T,
-  order_by = "p_val", show_all_cols = T
-))
-write.csv(as.data.frame(topTable(res_DS,
-  all = T, order = T,
-  order_by = "p_val",
-  show_all_cols = T,
-  show_counts = F
-)),
-"res_ds_m3.csv",
-row.names = F
-)
-
-## plots
-tiff("./plots/m2_abun.tiff", units = "in", width = 8, height = 8, res = 300)
-plotAbundances(sce,
-  k = "m2", by = "cluster_id",
-  group_by = "condition"
-) +
-  scale_color_manual(values = c("#4BB269", "#BC3A3A"))
-dev.off()
-
-plotClusterHeatmap(sce,
-  hm2 = "state_markers", m = NULL, k = "m1",
-  cluster_anno = F, scale = F, draw_freqs = T
-)
 
 
-res_DS <- diffcyt(sce,
-  design = design,
-  contrast = contrast,
-  analysis_type = "DS",
-  clustering_to_use = "m1",
-  verbose = T
-)
-topTable(res_DS, order = T, order_by = "p_val")
 
 
-saveRDS(res_DS, "res_DS.RDS")
 
-as.data.frame(topTable(res_DS,
-  order = T,
-  order_by = "p_val", show_all_cols = T
-))
+
