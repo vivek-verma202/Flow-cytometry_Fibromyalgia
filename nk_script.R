@@ -84,26 +84,26 @@ file_name <- as.character(pData(PBMC_fs)$name)
 for (i in 1:length(file_name)) {
   keyword(PBMC_fs@frames[[file_name[i]]])[["$CYT"]] <- "FACS"
 }
-ID <- gsub("\\.fcs$", "", file_name)
-df1 <- data.frame(file_name, ID)
-pheno <- read_excel("./data/FM_pheno.xlsx")
-PBMC_md <- merge(df1, pheno, by = "ID", all.x = T)
-PBMC_md <- PBMC_md[, c(1:4)]
+ID           <- gsub("\\.fcs$", "", file_name)
+df1          <- data.frame(file_name, ID)
+pheno        <- read_excel("./data/FM_pheno.xlsx")
+PBMC_md      <- merge(df1, pheno, by = "ID", all.x = T)
+PBMC_md      <- PBMC_md[, c(1:4)]
 PBMC_md$date <- NULL
 for (i in 1:nrow(PBMC_md)) {
   PBMC_md$date[i] <-
     PBMC_fs@frames[[PBMC_md$file_name[i]]]@description[["$DATE"]]
 }
-names(PBMC_md) <- c("sample_id", "file_name", "condition", "age", "date")
+names(PBMC_md)    <- c("sample_id", "file_name", "condition", "age", "date")
 PBMC_md$condition <- factor(PBMC_md$condition,
-  levels = c("Control", "Case")
+                            levels = c("Control", "Case")
 )
-PBMC_md$date <- factor(PBMC_md$date)
-PBMC_md <- PBMC_md[, c(2, 1, 3:5)]
+PBMC_md$date       <- factor(PBMC_md$date)
+PBMC_md            <- PBMC_md[, c(2, 1, 3:5)]
 PBMC_md$patient_id <- PBMC_md$sample_id
-colnames(PBMC_fs) <- gsub("FJComp-", "", gsub("-A$", "", colnames(PBMC_fs)))
-fcs_colname <- colnames(PBMC_fs)
-antigen <- c(
+colnames(PBMC_fs)  <- gsub("FJComp-", "", gsub("-A$", "", colnames(PBMC_fs)))
+fcs_colname        <- colnames(PBMC_fs)
+antigen            <- c(
   "TIGIT", "CD16", "CD57", "CD226", "CD3", "CD56", "CD107a",
   "CD335", "CD159c", "CD158e", "CD314", "CD96", "CD8a", "CD159a"
 )
@@ -120,11 +120,10 @@ PBMC_panel
 PBMC_md
 PBMC_fs
 sce <- prepData(PBMC_fs, PBMC_panel, PBMC_md,
-  md_cols = list(
-    file = "file_name", id = "sample_id",
-    factors = c("condition", "age", "date")
-  ),
-  transform = T, cofactor = 150
+  md_cols      = list(
+    file       = "file_name", id = "sample_id",
+    factors    = c("condition", "age", "date")
+  ), transform = T, cofactor = 150
 )
 sce@metadata[["experiment_info"]][["age"]] <- as.numeric(as.character(sce@metadata[["experiment_info"]][["age"]]))
 ## QC
@@ -143,8 +142,8 @@ gc()
 
 sce <- cluster(sce,
   features = NULL, xdim = 20,
-  ydim = 20, maxK = 50,
-  verbose = T, seed = 1
+  ydim     = 20, maxK = 50,
+  verbose  = T, seed = 1
 )
 gc()
 saveRDS(sce, "./data/nk_sce_clust_all.RDS")
@@ -256,7 +255,6 @@ new_cluster <- c(
 m1  <- data.frame(old_cluster, new_cluster)
 sce <- mergeClusters(sce, k = "meta50", table = m1, id = "m1", overwrite = T)
 rm(list = (setdiff(ls(), "sce")));gc()
-
 ## explore merger:
 tiff("./plots/m1_dim_red.tiff", units = "in",
      width = 20, height = 10, res = 300)
@@ -271,7 +269,6 @@ tiff("./plots/m1_abun_all_samples.tiff", units = "in",
      width = 15, height = 8, res = 600)
 plotAbundances(sce, k = "m1", by = "sample_id", group_by = "condition")
 dev.off();gc()
-
 p <- plotAbundances(sce,
   k = "m1", by = "cluster_id",
   group_by = "condition"
@@ -287,8 +284,8 @@ saveRDS(sce, "./data/nk_sce_clust_all.RDS")
 #                                                           #
 ## %######################################################%##
 
-design <- createDesignMatrix(ei(sce),
-  cols_design = c("condition", "age", "date")
+design   <- createDesignMatrix(ei(sce),
+                               cols_design = c("condition", "age", "date")
 )
 contrast <- createContrast(c(0, 1, 0, 0, 0, 0))
 ## QC
@@ -312,11 +309,11 @@ res_DS <- diffcyt(sce,
 )
 saveRDS(res_DS, "./data/clean_res_DS_m1.RDS");gc()
 da <- as.data.frame(topTable(res_DA,
-  order = T, all = T,
+  order    = T, all = T,
   order_by = "p_val", show_all_cols = T
 ))
 ds <- as.data.frame(topTable(res_DS,
-  order = T, all = T,
+  order    = T, all = T,
   order_by = "p_val", show_all_cols = T
 ))
 da <- da[da$cluster_id != "undefined",-6]
@@ -340,11 +337,11 @@ library(flowCore)
 library(flowWorkspace)
 library(cytoqc)
 files <- list.files(
-  path = "./NKA/data/fcs/01_compensated",
+  path       = "./NKA/data/fcs/01_compensated",
   full.names = T
 )
 cqc_data <- cqc_load_fcs(files)
-res <- cqc_check(cqc_data, type = "channel")
+res      <- cqc_check(cqc_data, type = "channel")
 res
 table(res$channel,res$group_id)
 res1 <- cqc_match(res, ref = 1)
@@ -365,10 +362,10 @@ cqc_write_fcs(cqc_data,
 # fix markers:
 rm(list=ls());gc()
 files <- list.files(
-  path = "./NKA/data/fcs/01_cleaned",
+  path       = "./NKA/data/fcs/01_cleaned",
   full.names = T
 )
-cs <- load_cytoset_from_fcs(files)
+cs        <- load_cytoset_from_fcs(files)
 file_name <- as.character(pData(cs)$name)
 for (i in seq_along(1:length(file_name))) {
   write.FCS(cs[[i]],paste0("./NKA/data/fcs/02_cleaned/",
@@ -381,49 +378,55 @@ for (i in seq_along(1:length(file_name))) {
 #                                                           #
 ## %######################################################%##
 
-
 files <- list.files(
-  path = "./NKA/data/fcs/02_cleaned",
+  path       = "./NKA/data/fcs/02_cleaned",
   full.names = T
 )
-adnka <- files[grepl("./NKA/data/fcs/02_cleaned/ADNKA*",
-                     files)]
-nka   <- files[grepl("./NKA/data/fcs/02_cleaned/NKA*",
+# prepare adnka_fs
+adnka    <- files[grepl("./NKA/data/fcs/02_cleaned/ADNKA*",
                      files)]
 adnka_fs <- read.flowSet(adnka,
-                        transformation = F,
-                        truncate_max_range = F
-)
-adnka_file_name <- as.character(pData(adnka_fs)$name)
-nka_fs <- read.flowSet(nka,
-                         transformation = F,
+                         transformation     = F,
                          truncate_max_range = F
 )
-nka_file_name <- as.character(pData(nka_fs)$name)
-for (i in 1:length(adnka_file_name)) {
-  keyword(adnka_fs@frames[[adnka_file_name[i]]])[["$CYT"]] <- "FACS"
+adnka_fn <- as.character(pData(adnka_fs)$name)
+for (i in seq_along(1:length(adnka_fn))) {
+  keyword(adnka_fs@frames[[adnka_fn[i]]])[["$CYT"]] <- "FACS"
 }
-for (i in 1:length(nka_file_name)) {
-  keyword(nka_fs@frames[[nka_file_name[i]]])[["$CYT"]] <- "FACS"
+nka      <- files[grepl("./NKA/data/fcs/02_cleaned/NKA*",
+                        files)]
+nka_fs   <- read.flowSet(nka,
+                         transformation     = F,
+                         truncate_max_range = F
+)
+nka_fn <- as.character(pData(nka_fs)$name)
+for (i in seq_along(1:length(nka_fn))) {
+  keyword(nka_fs@frames[[nka_fn[i]]])[["$CYT"]] <- "FACS"
 }
-adnka   <- read_excel("./NKA/data/meta.xlsx",sheet = "adnka")
-pheno <- read_excel("./data/FM_pheno.xlsx")
-PBMC_md <- merge(df1, pheno, by = "ID", all.x = T)
-PBMC_md <- PBMC_md[, c(1:4)]
-PBMC_md$date <- NULL
-for (i in 1:nrow(PBMC_md)) {
-  PBMC_md$date[i] <-
-    PBMC_fs@frames[[PBMC_md$file_name[i]]]@description[["$DATE"]]
+# adnka_fn      <- c("ADNKA_A_E40_STIM.fcs","ADNKA_B_F9_UNSTIM.fcs")
+ID            <- gsub("_.*","",gsub("^ADNKA_._", "",adnka_fn));ID
+state         <- gsub(".*[_]([^.]+)[.].*", "\\1",
+                 gsub("^ADNKA_._", "",adnka_fn));state
+df1           <- data.frame(file_name, ID, state)
+pheno         <- read_excel("./data/FM_pheno.xlsx")
+pheno         <- read_excel("./data/FM_pheno.xlsx")
+adnka_md      <- merge(df1, pheno, by = "ID", all.x = T)
+adnka_md      <- adnka_md[, c(1:5)]
+adnka_md$date <- NULL
+for (i in 1:nrow(adnka_md)) {
+  adnka_md$date[i] <-
+    adnka_fs@frames[[adnka_md$file_name[i]]]@description[["$DATE"]]
 }
-names(PBMC_md) <- c("sample_id", "file_name", "condition", "age", "date")
-PBMC_md$condition <- factor(PBMC_md$condition,
+names(adnka_md) <- c("sample_id", "file_name", "condition", "age", "date")
+adnka_md$condition <- factor(adnka_md$condition,
                             levels = c("Control", "Case")
 )
-PBMC_md$date <- factor(PBMC_md$date)
-PBMC_md <- PBMC_md[, c(2, 1, 3:5)]
-PBMC_md$patient_id <- PBMC_md$sample_id
-colnames(PBMC_fs) <- gsub("FJComp-", "", gsub("-A$", "", colnames(PBMC_fs)))
-fcs_colname <- colnames(PBMC_fs)
+adnka_md$date <- factor(adnka_md$date)
+adnka_md <- adnka_md[, c(2, 1, 3:5)]
+adnka_md$patient_id <- adnka_md$sample_id
+colnames(adnka_fs) <- gsub("FJComp-", "", gsub("-A$", "", colnames(adnka_fs)))
+fcs_colname <- colnames(adnka_fs)
+# <<---------------------- code set till this point
 antigen <- c(
   "TIGIT", "CD16", "CD57", "CD226", "CD3", "CD56", "CD107a",
   "CD335", "CD159c", "CD158e", "CD314", "CD96", "CD8a", "CD159a"
@@ -487,7 +490,7 @@ gc()
 
 ## %######################################################%##
 #                                                           #
-####                   00.begin here                     ####
+####                            EXTRA                    ####
 #                                                           #
 ## %######################################################%##
 cd /project/6007297/vivek22/FM_flow_cytometry/NK
