@@ -327,6 +327,30 @@ ds$fdr <- p.adjust(ds$p_val, method = "fdr")
 write.csv(da,"./data/da_res.csv",row.names = F)
 write.csv(ds,"./data/ds_res.csv",row.names = F)
 
+sce1 <- filterSCE(sce, cluster_id != "undefined", k = "m1")
+
+tiff("./plots/da_plot.tiff", units = "in",
+     width = 15, height = 8, res = 600)
+p <- plotAbundances(sce1,
+                    k = "m1", by = "cluster_id",
+                    group_by = "condition"
+)
+p + scale_colour_manual(values = c("#5FB84F", "#8A0200")) +
+  scale_fill_manual(values = c("#5FB84F", "#8A0200"))
+dev.off();gc()
+
+
+tiff("./plots/ds_plot.tiff", units = "in",
+     width = 10, height = 10, res = 300)
+p <- plotMedExprs(sce1, k = "m1",
+                 facet_by = "cluster_id")
+p <- p + scale_color_manual(values = c("#4BB269", "#BC3A3A"))
+(p + labs(x = NULL) + 
+    theme(axis.text.x = element_text(angle = 90, size = 12)))
+dev.off()
+
+p$layers <- p$layers[-1]
+
 ##%######################################################%##
 #                                                          #
 ####                 07. NK activation                  ####
@@ -554,6 +578,13 @@ ds <- as.data.frame(topTable(res,
 
 
 
+# Descriptive stat table
+R
+library(arsenal)
+pheno <- read.csv("C:/Users/vverma3/Desktop/Repos/Flow-cytometry_Fibromyalgia/data/pheno.csv")
+pheno <- pheno[,-c(1,3,4,6)]
+table_one <- tableby(FM ~ ., data = pheno)
+summary(table_one)
 
 
 
